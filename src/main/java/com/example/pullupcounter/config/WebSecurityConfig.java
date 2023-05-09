@@ -1,5 +1,11 @@
 package com.example.pullupcounter.config;
 
+import com.example.pullupcounter.model.security.CustomOAuth2User;
+import com.example.pullupcounter.model.security.CustomOAuth2UserService;
+import com.example.pullupcounter.model.service.UserService;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,7 +15,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
@@ -19,10 +24,6 @@ import java.io.IOException;
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-	@Bean
-	public UserDetailsService userDetailsService() {
-		return new UserDetailsServiceImpl();
-	}
 	
 	@Bean
 	public BCryptPasswordEncoder passwordEncoder() {
@@ -49,29 +50,22 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 			.antMatchers("/", "/login", "/oauth/**").permitAll()
 			.anyRequest().authenticated()
 			.and()
-			.formLogin().permitAll()
-				.loginPage("/login")
-				.usernameParameter("email")
-				.passwordParameter("pass")
-				.defaultSuccessUrl("/list")
-			.and()
 			.oauth2Login()
-				.loginPage("/login")
+				.loginPage("/oauth2/authorization/google")
 				.userInfoEndpoint()
 					.userService(oauthUserService)
 				.and()
 				.successHandler(new AuthenticationSuccessHandler() {
-					
 					@Override
 					public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-							Authentication authentication) throws IOException, ServletException {
+														Authentication authentication) throws IOException, ServletException {
 						System.out.println("AuthenticationSuccessHandler invoked");
 						System.out.println("Authentication name: " + authentication.getName());
 						CustomOAuth2User oauthUser = (CustomOAuth2User) authentication.getPrincipal();
 						
 						userService.processOAuthPostLogin(oauthUser.getEmail());
 						
-						response.sendRedirect("/list");
+						response.sendRedirect("/");
 					}
 				})
 				//.defaultSuccessUrl("/list")

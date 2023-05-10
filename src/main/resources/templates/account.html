@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Account</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f1f1f1;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        form {
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #fff;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            width: 400px;
+        }
+
+        form h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        label {
+            display: inline-block;
+            width: 100px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="submit"] {
+            padding: 8px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            width: 200px;
+        }
+
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+<h2 th:text="${message}"></h2>
+<div th:each="gameItem : ${gameItems}">
+    <h4 th:text="${gameItem.getName()}"></h4>
+    <form method="post" th:action="@{/updateKey}">
+        <input type="hidden" name="game" th:value="${gameItem.getName()}">
+        <label for="key">Ключ для API</label>
+        <input type="text" name="key" id="key" required>
+        <input type="submit" value="Оновити ключ">
+    </form>
+    <br>
+    <div th:if="${!user.hasInGameAccount(gameItem.getName())}">
+        <form method="post" th:action="@{/bindInGameAccount}">
+            <input type="hidden" name="game" th:value="${gameItem.getName()}">
+            <input type="hidden" name="user" th:value="${user.getId()}">
+            <label for="accountName">Ігрове ім'я:</label>
+            <input type="text" name="accountName" id="accountName" required>
+            <input type="submit" value="Привязати акаунт">
+        </form>
+    </div>
+
+
+</div>
+
+
+</body>
+</html>

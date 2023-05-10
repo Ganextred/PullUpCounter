@@ -1,13 +1,11 @@
 package com.example.pullupcounter.data.repository;
 
-import com.example.pullupcounter.data.entity.User;
+
+import com.example.pullupcounter.data.entity.Game;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface UserRepository extends CrudRepository<User, Long> {
-
-
-    public User getUserByUsername(String username);
-
+public interface GameRepository extends CrudRepository<Game, Long> {
+    public Game getGameByName(String game_name);
 }

@@ -1,9 +1,12 @@
 package com.example.pullupcounter.data.entity;
 
 import javax.persistence.*;
+import java.sql.Timestamp;
 
 @Entity
-public class Multiplier {
+public class InGameAccount {
+
+
     @Id
     @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,8 +18,19 @@ public class Multiplier {
     @ManyToOne
     private Game game;
 
-    @ManyToOne
-    private Exercise exercise;
+    private String mark;
+
+    private String puuid;
+
+    public Timestamp getDay() {
+        return day;
+    }
+
+    public void setDay(Timestamp day) {
+        this.day = day;
+    }
+
+    private Timestamp day;
 
     public Long getId() {
         return id;
@@ -42,21 +56,19 @@ public class Multiplier {
         this.game = game;
     }
 
-    public Exercise getExercise() {
-        return exercise;
+    public String getMark() {
+        return mark;
     }
 
-    public void setExercise(Exercise exercise) {
-        this.exercise = exercise;
+    public void setMark(String mark) {
+        this.mark = mark;
     }
 
-    public double getMultiplier() {
-        return multiplier;
+    public String getPuuid() {
+        return puuid;
     }
 
-    public void setMultiplier(double multiplier) {
-        this.multiplier = multiplier;
+    public void setPuuid(String puuid) {
+        this.puuid = puuid;
     }
-
-    private double multiplier;
 }

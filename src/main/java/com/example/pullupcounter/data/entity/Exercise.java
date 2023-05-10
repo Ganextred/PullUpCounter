@@ -5,9 +5,11 @@ import javax.persistence.*;
 @Entity
 public class Exercise {
     @Id
-    @Column(name = "exercise_id")
+    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private String name;
 
     public Long getId() {
         return id;
@@ -25,5 +27,5 @@ public class Exercise {
         this.name = name;
     }
 
-    private String name;
+
 }

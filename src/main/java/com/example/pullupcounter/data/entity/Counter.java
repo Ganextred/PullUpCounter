@@ -5,17 +5,18 @@ import javax.persistence.*;
 @Entity
 public class Counter {
     @Id
-    @Column(name = "user_exercise_id")
+    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne
     private Exercise exercise;
 
-    private Long counter;
+    private Double counter;
 
     public Long getId() {
         return id;
@@ -41,11 +42,11 @@ public class Counter {
         this.exercise = exercise;
     }
 
-    public Long getCounter() {
+    public Double getCounter() {
         return counter;
     }
 
-    public void setCounter(Long counter) {
+    public void setCounter(Double counter) {
         this.counter = counter;
     }
 }

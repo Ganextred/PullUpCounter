@@ -49,7 +49,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
-                .antMatchers("/", "/login", "/oauth/**").permitAll()
+                .antMatchers("/","/apartments", "/apartment/","/register",
+                        "/static/**","/lang", "/apartments/applySort","/upload/**", "/api/**", "/oauth/**", "/static/image/*").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .oauth2Login()
@@ -72,7 +73,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 })
                 //.defaultSuccessUrl("/list")
                 .and()
-                .logout().logoutSuccessUrl("/").permitAll()
+                .logout().logoutUrl("/logout")
+                .permitAll()
                 .and()
                 .exceptionHandling().accessDeniedPage("/403")
         ;

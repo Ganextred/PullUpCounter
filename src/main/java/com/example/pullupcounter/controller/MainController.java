@@ -17,7 +17,7 @@ public class MainController {
 
     @GetMapping("/")
     public String index(Model model) {
-        return "index";
+        return "redirect:/account";
     }
 
     @PostMapping("/updateKey")

@@ -1,44 +1,51 @@
 package com.example.pullupcounter.model.service;
 
 import com.example.pullupcounter.data.entity.*;
-import com.example.pullupcounter.data.repository.GameRepository;
-import com.example.pullupcounter.data.repository.InGameAccountRepository;
-import com.example.pullupcounter.data.repository.MultiplierRepository;
-import com.example.pullupcounter.data.repository.UserRepository;
+import com.example.pullupcounter.data.repository.*;
 import com.example.pullupcounter.model.ApiAccessException;
-import com.example.pullupcounter.model.enums.ExerciseName;
 import com.example.pullupcounter.model.enums.GameName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class UserService {
+    private static final Double DEFAULT_MULTIPLIER = 2.0;
+    private static final Double DEFAULT_COUNTER = 0.0;
 
     @Autowired
     private UserRepository repo;
 
     @Autowired
-    MultiplierRepository multiplierRepo;
+    private MultiplierRepository multiplierRepo;
 
     @Autowired
-    InGameAccountRepository lastMatchRepo;
+    private InGameAccountRepository lastMatchRepo;
 
     @Autowired
-    GameDriverFactory gameDriverFactory;
+    private GameDriverFactory gameDriverFactory;
 
     @Autowired
-    CounterService counterService;
+    private CounterService counterService;
     @Autowired
-    MultiplierService multiplierService;
-
+    private MultiplierService multiplierService;
     @Autowired
-    GameRepository gameRepository;
+    private ExerciseRepository exerciseRepo;
+    @Autowired
+    private GameRepository gameRepository;
+    @Autowired
+    private UserRepository userRepo;
+    @Autowired
+    private InGameAccountRepository inGameAccountRepository;
+    @Autowired
+    private CounterRepository counterRepository;
 
     public void processOAuthPostLogin(String username) {
         User existUser = repo.getUserByUsername(username);
@@ -47,21 +54,54 @@ public class UserService {
             User newUser = new User();
             newUser.setUsername(username);
             newUser.setEnabled(true);
-
+            List<Multiplier> multipliers = new ArrayList<>();
+            List<Counter> counters = new ArrayList<>();
+            for (Exercise exercise : exerciseRepo.findAll()) {
+                for (Game game : gameRepository.findAll()) {
+                    Multiplier multiplier = new Multiplier();
+                    multiplier.setUser(newUser);
+                    multiplier.setMultiplier(DEFAULT_MULTIPLIER);
+                    multiplier.setGame(game);
+                    multiplier.setExercise(exercise);
+                    multipliers.add(multiplier);
+                }
+                Counter counter = new Counter();
+                counter.setCounter(DEFAULT_COUNTER);
+                counter.setUser(newUser);
+                counter.setExercise(exercise);
+                counters.add(counter);
+            }
+            newUser.setMultipliers(multipliers);
+            newUser.setCounters(counters);
             repo.save(newUser);
-
             System.out.println("Created new user: " + username);
         }
 
     }
 
-    public Multiplier setMultiplier(User user, ExerciseName exercise, GameName game, Double multiplier) {
+    public Multiplier setMultiplier(User user, String exercise, GameName game, Double multiplier) {
         Multiplier multiplierEntity =
-                multiplierRepo.getByUser_UsernameAndGame_NameAndExercise_Name(user.getUsername(), exercise.name(), game.name());
+                multiplierRepo.getByUser_UsernameAndGame_NameAndExercise_Name(user.getUsername(), game.name(), exercise);
         if (multiplierEntity == null)
             return null;
         multiplierEntity.setMultiplier(multiplier);
         return multiplierRepo.save(multiplierEntity);
+    }
+
+    public List<String> updateAllCounters() throws ApiAccessException {
+        Iterable<User> users = userRepo.findAll();
+        List<String> message = new ArrayList<>();
+        for (User user : users) {
+            Hibernate.initialize(user.getInGameAccountSet());
+            for (InGameAccount inGameAccount : user.getInGameAccountSet()){
+                Integer deaths = updateGameHistory(user, GameName.valueOf(inGameAccount.getGame().getName()));
+                message.add(user.getUsername() +" "+
+                         deaths.toString() + " смертей у грі " + inGameAccount.getGame().getName() +
+                        " на акаунті " + inGameAccount.getInGameAccountName());
+
+            }
+        }
+        return message;
     }
 
     public Integer updateGameHistory(User user, GameName game) throws ApiAccessException {
@@ -73,7 +113,7 @@ public class UserService {
 
         user.getCounters().forEach((counter -> {
             Multiplier multiplier = multiplierRepo.getByUserAndGame_NameAndExercise(user, game.name(), counter.getExercise());
-            counterService.increaseCounter(counter, deaths * multiplier.getMultiplier());
+            counterService.addToCounter(counter, deaths * multiplier.getMultiplier());
         }
         ));
         return deaths;
@@ -81,29 +121,19 @@ public class UserService {
 
     public InGameAccount bindInGameAccount(User user, String inGameAccountName, GameName game) throws ApiAccessException {
         GameDriver driver = gameDriverFactory.findStrategy(game);
-        InGameAccount inGameAccount = driver.bindAccount(inGameAccountName, user);
-        if (inGameAccount != null) {
-            multiplierService.createMultipliers(user, gameRepository.getGameByName(game.name()));
-        }
-        return inGameAccount;
+        return driver.bindAccount(inGameAccountName, user);
     }
 
     public void test() throws JsonProcessingException {
-        InGameAccount account = new InGameAccount();
-        account.setPuuid("nhDrRwRutc1iTOtWwgOAjLi_nQSPfaTfYWdiWejU3X5eBehiAVx1uUEKyLbgUyFBkfLPTEfY-ZjBPw");
-
-        String GET_MATCHES_URI = "https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?api_key={api_key}";
-
-        RestTemplate restTemplate = new RestTemplate();
-
-        String jsonString = restTemplate.getForObject(GET_MATCHES_URI,
-                String.class,
-                account.getPuuid(),
-                "RGAPI-e1c96afc-6037-4301-a732-b8eb3afe92c5"
-        );
-        System.out.println(jsonString);
-        ObjectMapper mapper = new ObjectMapper();
-        System.out.println(mapper.readValue(jsonString, new TypeReference<List<String>>() {
-        }));
+        Iterable<InGameAccount> inGameAccounts = inGameAccountRepository.findAll();
+        for (InGameAccount acc : inGameAccounts) {
+            acc.setMark(null);
+            acc.setDay(null);
+            inGameAccountRepository.save(acc);
+        }
+        counterRepository.findAll().forEach((c)->{
+            c.setCounter((double) Math.round(Math.random() * 100));
+            counterRepository.save(c);
+        });
     }
 }

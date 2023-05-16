@@ -16,7 +16,7 @@ public class CounterService {
     @Autowired
     GameDriverFactory gameDriverFactory;
 
-    public Double increaseCounter(Counter counter, Double number) {
+    public Double addToCounter(Counter counter, Double number) {
         counter.setCounter(counter.getCounter() + number);
         counterRepo.save(counter);
         return counter.getCounter();

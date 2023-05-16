@@ -17,16 +17,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 @Service
 public class LeagueOfLegendsDriver implements GameDriver {
     private final static String GET_MATCHES_URI =
-            "https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start=0&count=100&api_key={api_key}";
+            "https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start=0&count=10&api_key={api_key}";
     private final static String GET_MATCH_URI =
-            "https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}}?api_key={api_key}";
+            "https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={api_key}";
     private final static String GET_ACCOUNT_URI =
             "https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/EUW?api_key={api_key}";
 
@@ -43,7 +45,7 @@ public class LeagueOfLegendsDriver implements GameDriver {
             int s = 0;
             for (String matchId : matches) {
                 JsonNode matchRootNode = getMatch(account, matchId);
-                if (matchRootNode.get("metadata").get("matchId").asText().equals(matchId))
+                if (matchRootNode.get("metadata").get("matchId").asText().equals(account.getMark()))
                     break;
                 for (JsonNode participantNode : matchRootNode.get("info").get("participants")) {
                     if (participantNode.get("puuid").asText().equals(account.getPuuid())) {
@@ -56,8 +58,8 @@ public class LeagueOfLegendsDriver implements GameDriver {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         } catch (HttpClientErrorException errorException) {
-            if (errorException.getStatusCode().is4xxClientError())
-                throw new ApiAccessException(errorException);
+            if (errorException.getStatusCode().equals(HttpStatus.FORBIDDEN) || errorException.getStatusCode().equals(HttpStatus.UNAUTHORIZED))
+                throw new ApiAccessException(errorException, getName().name());
             else throw errorException;
         }
     }
@@ -65,7 +67,7 @@ public class LeagueOfLegendsDriver implements GameDriver {
     private void updateInGameAccount(InGameAccount account, List<String> matches) throws JsonProcessingException {
         if (matches.size() > 0) {
             JsonNode rootNode = getMatch(account, matches.get(0));
-            account.setDay(Timestamp.valueOf(rootNode.get("info").get("gameStartTimestamp").asText()));
+            account.setDay(Timestamp.from(Instant.ofEpochMilli(rootNode.get("info").get("gameStartTimestamp").asLong())));
             account.setMark(matches.get(0));
             accountRepo.save(account);
         }
@@ -100,14 +102,17 @@ public class LeagueOfLegendsDriver implements GameDriver {
             InGameAccount inGameAccount = new InGameAccount();
             inGameAccount.setGame(game);
             inGameAccount.setPuuid(accountRootNode.get("puuid").asText());
+            inGameAccount.setInGameAccountName(inGameAccountName);
             inGameAccount.setUser(user);
             accountRepo.save(inGameAccount);
             return inGameAccount;
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         } catch (HttpClientErrorException errorException) {
-            if (errorException.getStatusCode().is4xxClientError())
-                throw new ApiAccessException(errorException);
+            if (errorException.getStatusCode().equals(HttpStatus.FORBIDDEN) || errorException.getStatusCode().equals(HttpStatus.UNAUTHORIZED))
+                throw new ApiAccessException(errorException, getName().name());
+            else if (errorException.getStatusCode().equals(HttpStatus.NOT_FOUND))
+                return null;
             else throw errorException;
         }
     }
@@ -138,24 +143,28 @@ public class LeagueOfLegendsDriver implements GameDriver {
                 account.getPuuid(),
                 account.getGame().getKey()
         );
-        System.out.println(jsonString);
         ObjectMapper mapper = new ObjectMapper();
-        System.out.println(mapper.readValue(jsonString, new TypeReference<List<String>>() {
-        }));
         return mapper.readValue(jsonString, new TypeReference<>() {
         });
 
     }
 
     private JsonNode getMatch(InGameAccount account, String matchId) throws JsonProcessingException {
+        WebClient webClient = WebClient.create();
+        String jsonString = webClient.get()
+                .uri(GET_MATCH_URI, matchId, account.getGame().getKey())
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
 
-        RestTemplate restTemplate = new RestTemplate();
 
-        String jsonString = restTemplate.getForObject(GET_MATCH_URI,
-                String.class,
-                matchId,
-                account.getGame().getKey()
-        );
+//        RestTemplate restTemplate = new RestTemplate();
+//
+//        String jsonString = restTemplate.getForObject(GET_MATCH_URI,
+//                String.class,
+//                matchId,
+//                account.getGame().getKey()
+//        );
         System.out.println(jsonString);
         ObjectMapper mapper = new ObjectMapper();
         System.out.println(mapper.readTree(jsonString));

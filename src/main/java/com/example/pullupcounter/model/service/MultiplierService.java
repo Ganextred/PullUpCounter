@@ -28,16 +28,4 @@ public class MultiplierService {
     @Autowired
     GameDriverFactory gameDriverFactory;
 
-    public List<Multiplier> createMultipliers(User user, Game game) {
-        List<Multiplier> list = new ArrayList<>();
-        for (Exercise e : exerciseRepo.findAll()) {
-            Multiplier multiplier = new Multiplier();
-            multiplier.setMultiplier(DEFAULT_MULTIPLIER);
-            multiplier.setExercise(e);
-            multiplier.setGame(game);
-            multiplier.setUser(user);
-            multiplierRepo.save(multiplier);
-        }
-        return list;
-    }
 }

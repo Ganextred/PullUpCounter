@@ -20,9 +20,30 @@ public class User {
     @JoinColumn(name = "user_id")
     private List<InGameAccount> inGameAccountSet;
 
-    @OneToMany(fetch = FetchType.LAZY)
+    public List<InGameAccount> getInGameAccountSet() {
+        return inGameAccountSet;
+    }
+
+    public void setInGameAccountSet(List<InGameAccount> inGameAccountSet) {
+        this.inGameAccountSet = inGameAccountSet;
+    }
+
+    public List<Multiplier> getMultipliers() {
+        return multipliers;
+    }
+
+    public void setMultipliers(List<Multiplier> multipliers) {
+        this.multipliers = multipliers;
+    }
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
     private List<Counter> counters;
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id")
+    private List<Multiplier> multipliers;
+
     private boolean enabled;
 
     public Long getId() {
@@ -69,5 +90,9 @@ public class User {
 
     public boolean hasInGameAccount(String gameName) {
         return inGameAccountSet.stream().anyMatch(x -> x.getGame().getName().equals(gameName));
+    }
+
+    public Counter getCounterByExercise(String exercise) {
+        return counters.stream().filter(counter -> exercise.equals(counter.getExercise().getName())).findAny().get();
     }
 }

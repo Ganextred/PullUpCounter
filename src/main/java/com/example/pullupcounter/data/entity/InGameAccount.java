@@ -20,7 +20,16 @@ public class InGameAccount {
 
     private String mark;
 
+    public String getInGameAccountName() {
+        return inGameAccountName;
+    }
+
+    public void setInGameAccountName(String inGameAccountName) {
+        this.inGameAccountName = inGameAccountName;
+    }
+
     private String puuid;
+    private String inGameAccountName;
 
     public Timestamp getDay() {
         return day;

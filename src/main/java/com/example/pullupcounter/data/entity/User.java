@@ -20,6 +20,15 @@ public class User {
     @JoinColumn(name = "user_id")
     private List<InGameAccount> inGameAccountSet;
 
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id")
+    private List<Counter> counters;
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id")
+    private List<Multiplier> multipliers;
+
     public List<InGameAccount> getInGameAccountSet() {
         return inGameAccountSet;
     }
@@ -35,14 +44,6 @@ public class User {
     public void setMultipliers(List<Multiplier> multipliers) {
         this.multipliers = multipliers;
     }
-
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id")
-    private List<Counter> counters;
-
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id")
-    private List<Multiplier> multipliers;
 
     private boolean enabled;
 
